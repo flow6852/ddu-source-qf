@@ -15,10 +15,10 @@ export class Source extends BaseSource<Params> {
   }): ReadableStream<Item<ActionData>[]>{
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
-        const clist = await (args.sourceParams.loc ? fn.getloclist(args.denops, 0) : fn.getqflist(args.denops)) as Array<string>;
+        const clist = await (args.sourceParams.loc ? fn.getloclist(args.denops, 0) :  fn.getqflist(args.denops));
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
-        for(const citem in clist){
+        for(const citem of clist){
             items.push({
                 word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 action: {
