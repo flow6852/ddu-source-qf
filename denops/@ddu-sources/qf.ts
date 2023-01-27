@@ -1,4 +1,4 @@
-import { BaseSource, Item, sourceOptions } from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
+import { BaseSource, Item, SourceOptions } from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
 import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 
@@ -15,13 +15,10 @@ export class Source extends BaseSource<Params> {
   }): ReadableStream<Item<ActionData>[]>{
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
-        let clist = await fn.getqflist(args.denops) as Array<string>;
-        if (args.sourceParams.loc){
-            clist = await fn.getloclist(args.denops) as Array<string>;
-        }
-        let items:  Item<ActionData>[] = [];
-        let regexp:RegExp = /(\s|\t|\n|\v)+/g;
-        for(let citem of clist){
+        const clist = await (args.sourceParams.loc ? fn.getloclist(args.denops, 0) : fn.getqflist(args.denops)) as Array<string>;
+        const items: Item<ActionData>[] = [];
+        const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
+        for(const citem in clist){
             items.push({
                 word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 action: {
