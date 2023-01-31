@@ -4,6 +4,7 @@ import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 
 type Params = {
    "loc": boolean; 
+   "fromDiagnostics" : boolean;
 }
 
 export class Source extends BaseSource<Params> {
@@ -15,14 +16,38 @@ export class Source extends BaseSource<Params> {
   }): ReadableStream<Item<ActionData>[]>{
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
+        // setqflist 
+        if (args.sourceParams.fromDiagnostics) {
+            if (args.sourceParams.loc) {
+                if (await args.denops.call("has", "nvim")) {
+                    // nvim built-in lsp
+                    args.denops.cmd("lua vim.diagnostic.setloclist({open=false})");
+                } else {
+                    // vim-lsp
+                    // maybe have to use internal functions
+                }
+            } else {
+                if (await args.denops.call("has", "nvim")) {
+                    // nvim built-in lsp
+                    args.denops.cmd("lua vim.diagnostic.setqflist({open=false})");
+                } else {
+                    // vim-lsp
+                    // maybe have to use internal functions
+                }
+            }
+        }
+
+        // getlist
         const clist = await (args.sourceParams.loc ? fn.getloclist(args.denops, 0) :  fn.getqflist(args.denops));
+
+        // create items
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
         for(const citem of clist){
             items.push({
                 word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 action: {
-                    path: await fn.bufname(args.denops, citem.bufnr)
+                    path: await fn.bufname(args.denops, citem.bufnr),
                 },
             });
         }
@@ -35,6 +60,7 @@ export class Source extends BaseSource<Params> {
   override params(): Params {
     return {
         "loc" : false,
+        "fromDiagnostics" : false,
     };
   }
 }
