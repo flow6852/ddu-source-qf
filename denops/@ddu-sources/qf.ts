@@ -25,14 +25,22 @@ export class Source extends BaseSource<Params> {
                 } else {
                     // vim-lsp
                     // maybe have to use internal functions
+                    // meemo :: This script not working
+                    //args.denops.cmd("LspDocumentDiagnostics");
+                    //args.denops.cmd("lclose");
                 }
             } else {
                 if (await args.denops.call("has", "nvim")) {
                     // nvim built-in lsp
                     args.denops.cmd("lua vim.diagnostic.setqflist({open=false})");
                 } else {
+                    console.log("test")
                     // vim-lsp
                     // maybe have to use internal functions
+                    // memo :: This script not working
+                    //args.denops.cmd("LspDocumentDiagnostics");
+                    //fn.setqflist(args.denops, fn.getloclist(args.denops, 0));
+                    //args.denops.cmd("lclose");
                 }
             }
         }
