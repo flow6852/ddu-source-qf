@@ -44,10 +44,13 @@ export class Source extends BaseSource<Params> {
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
         for(const citem of clist){
+            console.log(citem)
             items.push({
                 word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 action: {
                     path: await fn.bufname(args.denops, citem.bufnr),
+                    bufNr: citem.bufnr,
+                    lineNr: citem.lnum,
                 },
             });
         }
