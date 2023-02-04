@@ -4,11 +4,17 @@ import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 
 type Params = {
    "loc": boolean; 
-   "fromDiagnostics" : boolean;
+   "title": string;
+}
+
+type QfHistId = {
+    "title": string;
+    "qfids": number[];
 }
 
 export class Source extends BaseSource<Params> {
   override kind = "file";
+
   override gather(args :{
       denops: Denops;
       sourceOptions: SourceOptions;
@@ -16,49 +22,32 @@ export class Source extends BaseSource<Params> {
   }): ReadableStream<Item<ActionData>[]>{
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
-        // setqflist 
-        if (args.sourceParams.fromDiagnostics) {
-            if (args.sourceParams.loc) {
-                if (await args.denops.call("has", "nvim")) {
-                    // nvim built-in lsp
-                    args.denops.cmd("lua vim.diagnostic.setloclist({open=false})");
-                } else {
-                    // vim-lsp
-                    // maybe have to use internal functions
-                    // meemo :: This script not working
-                    //args.denops.cmd("LspDocumentDiagnostics");
-                    //args.denops.cmd("lclose");
-                }
-            } else {
-                if (await args.denops.call("has", "nvim")) {
-                    // nvim built-in lsp
-                    args.denops.cmd("lua vim.diagnostic.setqflist({open=false})");
-                } else {
-                    console.log("test")
-                    // vim-lsp
-                    // maybe have to use internal functions
-                    // memo :: This script not working
-                    //args.denops.cmd("LspDocumentDiagnostics");
-                    //fn.setqflist(args.denops, fn.getloclist(args.denops, 0));
-                    //args.denops.cmd("lclose");
-                }
+        // getlistid
+        let titleid = 0;
+        for (let i = (await(fn.getqflist(args.denops, {"id": 0}))).id as number; 0 < i; i--){
+            const title = await (args.sourceParams.loc ?
+                                 fn.getloclist(args.denops, {"title": i}, 0) :
+                                 fn.getqflist(args.denops, {"title": i}));
+            if (title.title === args.sourceParams.title) {
+                titleid = i;
             }
         }
-
-        // getlist
-        const clist = await (args.sourceParams.loc ? fn.getloclist(args.denops, 0) :  fn.getqflist(args.denops));
+        const qflist = await (args.sourceParams.loc ?
+                             fn.getloclist(args.denops, {"items":  titleid}, 0) :
+                             fn.getqflist(args.denops, {"items": titleid}));
 
         // create items
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
-        for(const citem of clist){
-            console.log(citem)
+        for(const citem of qflist.items){
             items.push({
                 word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 action: {
-                    path: await fn.bufname(args.denops, citem.bufnr),
                     bufNr: citem.bufnr,
+                    col: citem.col,
                     lineNr: citem.lnum,
+                    path: await fn.bufname(args.denops, citem.bufnr),
+                    text: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
                 },
             });
         }
@@ -71,7 +60,7 @@ export class Source extends BaseSource<Params> {
   override params(): Params {
     return {
         "loc" : false,
-        "fromDiagnostics" : false,
+        "title" : "",
     };
   }
 }
