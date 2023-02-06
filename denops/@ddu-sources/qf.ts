@@ -5,6 +5,8 @@ import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 type Params = {
    "loc": boolean; 
    "title": string;
+   "withTitle": boolean;
+   "sep": string;
 }
 
 type QfHistId = {
@@ -40,14 +42,19 @@ export class Source extends BaseSource<Params> {
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
         for(const citem of qflist.items){
+            let text: string = citem.text.replaceAll(regexp, " ");
+            if (args.sourceParams.withTitle) {
+                text = (await fn.bufname(args.denops, citem.bufnr) + args.sourceParams.sep + text).replaceAll(regexp, " ");
+            }
+
             items.push({
-                word: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
+                word: text,
                 action: {
                     bufNr: citem.bufnr,
                     col: citem.col,
                     lineNr: citem.lnum,
                     path: await fn.bufname(args.denops, citem.bufnr),
-                    text: (await fn.bufname(args.denops, citem.bufnr) + ":" + citem.text).replaceAll(regexp, " "),
+                    text: text,
                 },
             });
         }
@@ -61,6 +68,8 @@ export class Source extends BaseSource<Params> {
     return {
         "loc" : false,
         "title" : "",
+        "withTitle" : true,
+        "sep" : "|",
     };
   }
 }
