@@ -1,17 +1,13 @@
 import { BaseSource, Item, SourceOptions } from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
 import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
+import { equal } from "https://deno.land/x/equal@v1.5.0/mod.ts";
 
 type Params = {
    "loc": boolean; 
-   "title": string;
+   "what": unknown;
    "withTitle": boolean;
    "sep": string;
-}
-
-type QfHistId = {
-    "title": string;
-    "qfids": number[];
 }
 
 export class Source extends BaseSource<Params> {
@@ -25,19 +21,24 @@ export class Source extends BaseSource<Params> {
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
         // getlistid
-        let titleid = 0;
-        for (let i = (await(fn.getqflist(args.denops, {"id": 0}))).id as number; 0 < i; i--){
-            const title = await (args.sourceParams.loc ?
-                                 fn.getloclist(args.denops, {"title": i}, 0) :
-                                 fn.getqflist(args.denops, {"title": i}));
-            if (title.title === args.sourceParams.title) {
+        let titleid = -1;
+        for (let i = (await(fn.getqflist(args.denops, {'nr': '$', 'id': 0}))).id as number; 0 < i; i--){
+            const what = await (args.sourceParams.loc ? fn.getloclist(args.denops, { ...args.sourceParams.what, ...{'id': i}}, 0) 
+                                                      : fn.getqflist(args.denops, { ...args.sourceParams.what, ...{'id': i }}));
+            if ( equal(args.sourceParams.what, (({id, ...rest}) => rest)(what)) ) {
+                console.log("get!");
                 titleid = i;
             }
         }
-        const qflist = await (args.sourceParams.loc ?
-                             fn.getloclist(args.denops, {"items":  titleid}, 0) :
-                             fn.getqflist(args.denops, {"items": titleid}));
 
+        if (titleid < 0){
+
+            controller.close();
+        }
+
+        const qflist = await (args.sourceParams.loc ?
+                             fn.getloclist(args.denops, {'items': titleid}, 0) :
+                             fn.getqflist(args.denops, {'items': titleid}));
         // create items
         const items: Item<ActionData>[] = [];
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
@@ -67,7 +68,7 @@ export class Source extends BaseSource<Params> {
   override params(): Params {
     return {
         "loc" : false,
-        "title" : "",
+        "what" : "",
         "withTitle" : true,
         "sep" : "|",
     };
