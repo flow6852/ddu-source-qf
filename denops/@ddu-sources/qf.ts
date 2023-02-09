@@ -73,7 +73,6 @@ export class Source extends BaseSource<Params> {
               (({ id, ...rest }) => rest)(what),
             )
           ) {
-            console.log("get!");
             titleid = i;
           }
         }
