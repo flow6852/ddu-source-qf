@@ -49,7 +49,7 @@ export class Source extends BaseSource<Params> {
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
         // getlistid
-        let titleid = -1;
+        let titleid = 0;
         for (
           let i = (await (fn.getqflist(args.denops, {
             nr: "$",
