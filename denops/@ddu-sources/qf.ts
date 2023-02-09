@@ -37,6 +37,7 @@ type What = {
   id?: number;
   lnum?: number;
   title?: string;
+  all?: number;
 };
 
 export class Source extends BaseSource<Params> {
@@ -60,21 +61,11 @@ export class Source extends BaseSource<Params> {
           i--
         ) {
           const what = await (args.sourceParams.loc
-            ? fn.getloclist(args.denops, {
-              ...args.sourceParams.what,
-              ...{ id: i },
-            }, 0)
-            : fn.getqflist(args.denops, {
-              ...args.sourceParams.what,
-              ...{ id: i },
-            })) as QuickFix;
+            ? fn.getloclist(args.denops, { id: i, all: 0 }, 0)
+            : fn.getqflist(args.denops, { id: i, all: 0 })) as QuickFix;
           if (
             // isSubst filtering title string comming soon...?
-            equal(
-              args.sourceParams.what,
-              (({ id, ...rest }) =>
-                rest)(what),
-            )
+            isContain(what, args.sourceParams)
           ) {
             titleid = i;
           }
@@ -141,4 +132,31 @@ export class Source extends BaseSource<Params> {
       format: "%T|%t",
     };
   }
+}
+
+function isContain(qf: QuickFix, src: Params) {
+  let ret = true;
+  for (const key of Object.keys(src.what)) {
+    switch (key) {
+      case "bufnr":
+        ret = ret && (qf.bufnr == src.what.bufnr);
+        break;
+      case "col":
+        ret = ret && (qf.col == src.what.col);
+        break;
+      case "id":
+        ret = ret && (qf.id == src.what.id);
+        break;
+      case "lnum":
+        ret = ret && (qf.lnum == src.what.lnum);
+        break;
+      case "title":
+        ret = ret &&
+          (src.isSubst
+            ? (!qf.title.indexOf(src.what.title as string))
+            : (qf.title == src.what.title));
+        break;
+    }
+  }
+  return ret;
 }
