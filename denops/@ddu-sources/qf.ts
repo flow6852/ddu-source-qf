@@ -85,8 +85,8 @@ export class Source extends BaseSource<Params> {
         }
 
         const qflist = await (args.sourceParams.loc
-          ? fn.getloclist(args.denops, { items: titleid, all: 0 }, 0)
-          : fn.getqflist(args.denops, { items: titleid, all: 0 })) as QuickFix;
+          ? fn.getloclist(args.denops, { id: titleid, all: 0 }, 0)
+          : fn.getqflist(args.denops, { id: titleid, all: 0 })) as QuickFix;
         // create items
         const items: Item<ActionData>[] = [];
         // format text
