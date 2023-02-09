@@ -10,8 +10,8 @@ import { equal } from "https://deno.land/x/equal@v1.5.0/mod.ts";
 type Params = {
   loc: boolean;
   what: What;
-  withTitle: boolean;
-  sep: string;
+  isSubst: boolean;
+  format: string;
 };
 
 type QuickFix = {
@@ -28,6 +28,7 @@ type QuickFixItem = {
   col: number;
   lnum: number;
   text: string;
+  type: string;
 };
 
 type What = {
@@ -68,9 +69,11 @@ export class Source extends BaseSource<Params> {
               ...{ id: i },
             })) as QuickFix;
           if (
+            // isSubst filtering title string comming soon...?
             equal(
               args.sourceParams.what,
-              (({ id, ...rest }) => rest)(what),
+              (({ id, ...rest }) =>
+                rest)(what),
             )
           ) {
             titleid = i;
@@ -82,17 +85,36 @@ export class Source extends BaseSource<Params> {
         }
 
         const qflist = await (args.sourceParams.loc
-          ? fn.getloclist(args.denops, { items: titleid }, 0)
-          : fn.getqflist(args.denops, { items: titleid })) as QuickFix;
+          ? fn.getloclist(args.denops, { items: titleid, all: 0 }, 0)
+          : fn.getqflist(args.denops, { items: titleid, all: 0 })) as QuickFix;
         // create items
         const items: Item<ActionData>[] = [];
+        // format text
         const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
         for (const citem of qflist.items) {
-          let text: string = citem.text.replaceAll(regexp, " ");
-          if (args.sourceParams.withTitle) {
-            text = (await fn.bufname(args.denops, citem.bufnr) +
-              args.sourceParams.sep + text).replaceAll(regexp, " ");
-          }
+          const text: string = args.sourceParams.format.replaceAll(regexp, " ")
+            .replaceAll(
+              "%i",
+              String(qflist.id),
+            ).replaceAll(
+              "%b",
+              String(citem.bufnr),
+            ).replaceAll(
+              "%c",
+              String(citem.col),
+            ).replaceAll(
+              "%l",
+              String(citem.lnum),
+            ).replaceAll(
+              "%T",
+              qflist.title,
+            ).replaceAll(
+              "%y",
+              citem.type,
+            ).replaceAll(
+              "%t",
+              citem.text,
+            );
 
           items.push({
             word: text,
@@ -115,8 +137,8 @@ export class Source extends BaseSource<Params> {
     return {
       loc: false,
       what: {},
-      withTitle: true,
-      sep: "|",
+      isSubst: false,
+      format: "%T|%t",
     };
   }
 }
