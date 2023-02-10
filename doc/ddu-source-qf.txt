@@ -30,8 +30,18 @@ https://github.com/Shougo/ddu-kind-file
 ==============================================================================
 EXAMPLES				*ddu-source-qf-examples*
 >
+	" LaTeX
 	call ddu#start(#{sources: [#{name: 'qf',
-			\ params: #{ what: #{title: 'Diagnostics'}}}] })
+			\ params: #{what: #{title: 'Diagnostics'}},
+			\ #{name: 'qf',
+			\ params: #{what: #{title: 'VimTeX'},
+			\ 	    isSubst: v:true}}]})
+
+	" vimgrep
+	call ddu#start(#{sources: [#{name: 'qf',
+			\ params: #{what: #{title: ':vimgrep'},
+			\ 	    isSubst: v:true,
+			\ 	    dup: v:true}}]})
 
 ==============================================================================
 PARAMS					*ddu-source-qf-params*
@@ -50,14 +60,14 @@ what  		(dict)
 
 		Default: {}
 
-				*ddu-source-qf-param-withTitle*
+				*ddu-source-qf-param-isSubst*
 isSubst 	(bool)
 		When true, search for substring if what 
 		parameter contains title.
 
 		Default: v:false
 
-				*ddu-source-qf-param-sep*
+				*ddu-source-qf-param-format*
 format 		(string)
 		text format.
 		
@@ -70,6 +80,13 @@ format 		(string)
 		"%t":item text
 
 		Default: "%T|%t"
+
+				*ddu-source-qf-param-dup*
+dup 		(boolean)
+		When true, get qflists 
+		allowing duplication.
+
+		Default: v:false
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:noet:fen:noet:
