@@ -118,12 +118,12 @@ export class Source extends BaseSource<Params> {
               const path2 = isAbsolute(await fn.bufname(args.denops, citem.bufnr))
                 ? await fn.bufname(args.denops, citem.bufnr)
                 : await fn.getcwd(args.denops) + await fn.bufname(args.denops, citem.bufnr); 
-              console.log(path + "\n" + path2);
+              console.log(path + " " + citem.bufnr + "\n" + path2 + " " + citem.bufnr);
 
               items.push({
                 word: text,
                 action: {
-                  bufNr: citem.bufnr,
+                  // bufNr: citem.bufnr,
                   col: citem.col,
                   lineNr: citem.lnum,
                   path: path,
