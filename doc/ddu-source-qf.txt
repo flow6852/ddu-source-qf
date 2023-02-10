@@ -84,6 +84,7 @@ format 		(string)
 		"%l":item lnum
 		"%y":item type
 		"%T":QuickFix title
+		"%p":item path
 		"%t":item text
 
 		Default: "%T|%t"

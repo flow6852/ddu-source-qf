@@ -5,6 +5,7 @@ import {
 } from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
 import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
+import { resolve, isAbsolute } from "https://deno.land/std@v0.177.0/path/mod.ts";
 
 type Params = {
   nr: number;
@@ -102,17 +103,27 @@ export class Source extends BaseSource<Params> {
                   "%y",
                   citem.type,
                 ).replaceAll(
+                  "%p",
+                  await fn.bufname(args.denops, citem.bufnr),
+                ).replaceAll(
                   "%t",
                   citem.text,
                 );
 
+              // fullpath 
+              // Note: fn don't have isabsolutepath
+              const path = isAbsolute(await fn.bufname(args.denops, citem.bufnr))
+                ? await fn.bufname(args.denops, citem.bufnr)
+                : resolve(await fn.bufname(args.denops, citem.bufnr));
+
+                console.log(path)
               items.push({
                 word: text,
                 action: {
                   bufNr: citem.bufnr,
                   col: citem.col,
                   lineNr: citem.lnum,
-                  path: await fn.bufname(args.denops, citem.bufnr),
+                  path: path,
                   text: text,
                 },
               });
