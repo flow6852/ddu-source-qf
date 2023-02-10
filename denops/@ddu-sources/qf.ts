@@ -116,7 +116,6 @@ export class Source extends BaseSource<Params> {
                 ? await fn.bufname(args.denops, citem.bufnr)
                 : resolve(await fn.bufname(args.denops, citem.bufnr));
 
-                console.log(path)
               items.push({
                 word: text,
                 action: {
