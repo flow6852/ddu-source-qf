@@ -16,8 +16,25 @@ https://github.com/Shougo/ddu.vim
 
 https://github.com/Shougo/ddu-kind-file
 
-# Configuration
+# Example
 
 ```
-call ddu#start(#{sources: [#{name: 'qf'}] })
+" LaTeX
+call ddu#start(#{sources: [#{name: 'qf',
+		\ params: #{what: #{title: 'Diagnostics'}},
+		\ #{name: 'qf',
+		\ params: #{what: #{title: 'VimTeX'},
+		\ 	    isSubst: v:true}}]})
+
+" vimgrep
+call ddu#start(#{sources: [
+		\ #{name: 'qf',
+		\ params: #{what: #{title: ':vimgrep'},
+		\ 	    isSubst: v:true,
+		\ 	    dup: v:true}},
+		\ #{name: 'qf',
+		\ params: #{what: #{title: ':lvimgrep'},
+		\ 	    isSubst: v:true,
+		\ 	    nr: 0,
+		\ 	    dup: v:true}}]})
 ```

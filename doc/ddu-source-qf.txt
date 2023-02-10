@@ -38,19 +38,26 @@ EXAMPLES				*ddu-source-qf-examples*
 			\ 	    isSubst: v:true}}]})
 
 	" vimgrep
-	call ddu#start(#{sources: [#{name: 'qf',
+	call ddu#start(#{sources: [
+			\ #{name: 'qf',
 			\ params: #{what: #{title: ':vimgrep'},
 			\ 	    isSubst: v:true,
+			\ 	    dup: v:true}},
+			\ #{name: 'qf',
+			\ params: #{what: #{title: ':lvimgrep'},
+			\ 	    isSubst: v:true,
+			\ 	    nr: 0,
 			\ 	    dup: v:true}}]})
 
 ==============================================================================
 PARAMS					*ddu-source-qf-params*
 
 				*ddu-source-qf-param-chunkSize*
-loc		(bool)
-		When true, get from loclist.
+nr		(number)
+		get the location list for window nr
+		When -1, use getqflist.
 
-		Default: v:false
+		Default: -1
 
 				*ddu-source-qf-param-what*
 what  		(dict)

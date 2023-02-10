@@ -7,7 +7,7 @@ import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 
 type Params = {
-  loc: boolean;
+  nr: number;
   what: What;
   isSubst: boolean;
   dup: boolean;
@@ -52,23 +52,30 @@ export class Source extends BaseSource<Params> {
         // getlistid
         let titleid = 0;
         for (
-          let i = (await (fn.getqflist(args.denops, {
-            nr: "$",
-            id: 0,
-          })) as QuickFix).id as number;
+          let i = (await (args.sourceParams.nr > -1
+            ? fn.getloclist(args.denops,
+              args.sourceParams.nr,
+              {
+                nr: "$",
+                id: 0,
+              })
+            : fn.getqflist(args.denops, {
+              nr: "$",
+              id: 0,
+            })) as QuickFix).id as number;
           0 < i;
           i--
         ) {
-          const what = await (args.sourceParams.loc
-            ? fn.getloclist(args.denops, { id: i, all: 0 }, 0)
+          const what = await (args.sourceParams.nr > -1
+            ? fn.getloclist(args.denops, args.sourceParams.nr, { id: i, all: 0 })
             : fn.getqflist(args.denops, { id: i, all: 0 })) as QuickFix;
           if (
             isContain(what, args.sourceParams)
           ) {
             titleid = i;
 
-            const qflist = await (args.sourceParams.loc
-              ? fn.getloclist(args.denops, { id: titleid, all: 0 }, 0)
+            const qflist = await (args.sourceParams.nr > -1
+              ? fn.getloclist(args.denops, args.sourceParams.nr, { id: titleid, all: 0 })
               : fn.getqflist(args.denops, { id: titleid, all: 0 })) as QuickFix;
             // create items
             const items: Item<ActionData>[] = [];
@@ -123,7 +130,7 @@ export class Source extends BaseSource<Params> {
 
   override params(): Params {
     return {
-      loc: false,
+      nr: -1,
       what: {},
       isSubst: false,
       format: "%T|%t",
