@@ -5,7 +5,7 @@ import {
 } from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
 import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
-import { resolve, isAbsolute } from "https://deno.land/std@v0.177.0/path/mod.ts";
+import { isAbsolute } from "https://deno.land/std@0.177.0/path/mod.ts";
 
 type Params = {
   nr: number;
@@ -40,6 +40,12 @@ type What = {
   title?: string;
 };
 
+type BufInfo = {
+  bufnr: number;
+  hidden: boolean;
+  loaded: boolean;
+};
+
 export class Source extends BaseSource<Params> {
   override kind = "file";
 
@@ -50,16 +56,18 @@ export class Source extends BaseSource<Params> {
   }): ReadableStream<Item<ActionData>[]> {
     return new ReadableStream<Item<ActionData>[]>({
       async start(controller) {
+        // get now bufNr
+        // Note: fn.bufexists can't check """ hidden """
+        const bufInfos = await fn.getbufinfo(args.denops) as Array<BufInfo>;
+
         // getlistid
         let titleid = 0;
         for (
           let i = (await (args.sourceParams.nr > -1
-            ? fn.getloclist(args.denops,
-              args.sourceParams.nr,
-              {
-                nr: "$",
-                id: 0,
-              })
+            ? fn.getloclist(args.denops, args.sourceParams.nr, {
+              nr: "$",
+              id: 0,
+            })
             : fn.getqflist(args.denops, {
               nr: "$",
               id: 0,
@@ -68,7 +76,10 @@ export class Source extends BaseSource<Params> {
           i--
         ) {
           const what = await (args.sourceParams.nr > -1
-            ? fn.getloclist(args.denops, args.sourceParams.nr, { id: i, all: 0 })
+            ? fn.getloclist(args.denops, args.sourceParams.nr, {
+              id: i,
+              all: 0,
+            })
             : fn.getqflist(args.denops, { id: i, all: 0 })) as QuickFix;
           if (
             isContain(what, args.sourceParams)
@@ -76,14 +87,20 @@ export class Source extends BaseSource<Params> {
             titleid = i;
 
             const qflist = await (args.sourceParams.nr > -1
-              ? fn.getloclist(args.denops, args.sourceParams.nr, { id: titleid, all: 0 })
+              ? fn.getloclist(args.denops, args.sourceParams.nr, {
+                id: titleid,
+                all: 0,
+              })
               : fn.getqflist(args.denops, { id: titleid, all: 0 })) as QuickFix;
             // create items
             const items: Item<ActionData>[] = [];
             // format text
             const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
             for (const citem of qflist.items) {
-              const text: string = args.sourceParams.format.replaceAll(regexp, " ")
+              const text: string = args.sourceParams.format.replaceAll(
+                regexp,
+                " ",
+              )
                 .replaceAll(
                   "%i",
                   String(qflist.id),
@@ -110,26 +127,30 @@ export class Source extends BaseSource<Params> {
                   citem.text,
                 );
 
-              // fullpath 
+              // fullpath
               // Note: fn don't have isabsolutepath
-              const path = isAbsolute(await fn.bufname(args.denops, citem.bufnr))
-                ? await fn.bufname(args.denops, citem.bufnr)
-                : resolve(await fn.bufname(args.denops, citem.bufnr));
-              const path2 = isAbsolute(await fn.bufname(args.denops, citem.bufnr))
-                ? await fn.bufname(args.denops, citem.bufnr)
-                : await fn.getcwd(args.denops) + await fn.bufname(args.denops, citem.bufnr); 
-              console.log(path + " " + citem.bufnr + "\n" + path2 + " " + citem.bufnr);
+              const path =
+                isAbsolute(await fn.bufname(args.denops, citem.bufnr))
+                  ? await fn.bufname(args.denops, citem.bufnr)
+                  : await fn.getcwd(args.denops) + "/" +
+                    await fn.bufname(args.denops, citem.bufnr);
 
-              items.push({
-                word: text,
-                action: {
-                  // bufNr: citem.bufnr,
-                  col: citem.col,
-                  lineNr: citem.lnum,
-                  path: path,
-                  text: text,
-                },
-              });
+              // set action data
+              let item: ActionData = {
+                col: citem.col,
+                lineNr: citem.lnum,
+                path: path,
+                text: text,
+              };
+
+              // set bufNr
+              for (const info of bufInfos) {
+                if (info.bufnr == citem.bufnr && info.loaded && !info.hidden) {
+                  item = { ...item, ...{ bufNr: info.bufnr } };
+                }
+              }
+
+              items.push({ word: text, action: item });
             }
             controller.enqueue(items);
             if (!args.sourceParams.dup) {
