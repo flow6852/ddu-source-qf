@@ -13,15 +13,16 @@ type Params = {
   isSubst: boolean;
   dup: boolean;
   format: string;
+  size: number;
+  total: number;
 };
 
 type QuickFix = {
-  items: QuickFixItem[];
-  qfbufnr: number;
-  nr: number;
-  col: number;
   id: number;
-  lnum: number;
+  items: QuickFixItem[];
+  nr: number;
+  qfbufnr: number;
+  size: number;
   title: string;
 };
 
@@ -34,11 +35,10 @@ type QuickFixItem = {
 };
 
 type What = {
-  qfbufnr?: number;
-  nr?: number;
-  col?: number;
   id?: number;
-  lnum?: number;
+  nr?: number;
+  qfbufnr?: number;
+  size?: number;
   title?: string;
 };
 
@@ -62,6 +62,8 @@ export class Source extends BaseSource<Params> {
         // Note: fn.bufexists can't check """ hidden """
         const bufInfos = await fn.getbufinfo(args.denops) as Array<BufInfo>;
 
+        let totalRemain = args.sourceParams.total;
+
         // getlistid
         let titleid = 0;
         for (
@@ -77,36 +79,47 @@ export class Source extends BaseSource<Params> {
           0 < i;
           i--
         ) {
-          // default {what} 
+          // default {what}
           // if use {all: 0}, `getqflist` get items
           const what: What = {
             id: i,
             nr: 0,
             qfbufnr: 0,
-            col: 0,
-            lnum: 0,
             title: "",
+            size: 0,
           };
 
           const qfl = await (args.sourceParams.nr > -1
             ? fn.getloclist(args.denops, args.sourceParams.nr, what)
             : fn.getqflist(args.denops, what)) as QuickFix;
           if (
-            isContain(qfl, args.sourceParams)
+            isContain(qfl, args.sourceParams) && totalRemain > 0
           ) {
             titleid = i;
 
+            const smaller = qfl.size < args.sourceParams.size
+              ? qfl.size
+              : args.sourceParams.size;
+
             const qflist = await (args.sourceParams.nr > -1
-              ? fn.getloclist(args.denops, args.sourceParams.nr, {
+              ? args.denops.call(
+                "ddu_source_qf#internal#_getqflist",
+                args.sourceParams.nr,
+                {
+                  id: titleid,
+                  all: 0,
+                },
+                Math.min(smaller, totalRemain),
+              )
+              : args.denops.call("ddu_source_qf#internal#_getqflist", {
                 id: titleid,
                 all: 0,
-              })
-              : args.denops.dispatch("ddu-source-qf", "ddu_source_qf#_getqflist", { id: titleid, all: 0 }, 10)) as QuickFix;
+              }, Math.min(smaller, totalRemain))) as QuickFix;
             // create items
             const items: Item<ActionData>[] = [];
             for (const citem of qflist.items) {
-            // format text
-            const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
+              // format text
+              const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
               const text: string = args.sourceParams.format.replaceAll(
                 regexp,
                 " ",
@@ -166,6 +179,7 @@ export class Source extends BaseSource<Params> {
             if (!args.sourceParams.dup) {
               break;
             }
+            totalRemain = totalRemain - smaller;
           }
         }
         controller.close();
@@ -180,6 +194,8 @@ export class Source extends BaseSource<Params> {
       isSubst: false,
       format: "%T|%t",
       dup: false,
+      size: 10000,
+      total: 10000,
     };
   }
 }
@@ -194,14 +210,11 @@ function isContain(qf: QuickFix, src: Params) {
       case "nr":
         ret = ret && (qf.nr == src.what.nr);
         break;
-      case "col":
-        ret = ret && (qf.col == src.what.col);
+      case "size":
+        ret = ret && (qf.size == src.what.size);
         break;
       case "id":
         ret = ret && (qf.id == src.what.id);
-        break;
-      case "lnum":
-        ret = ret && (qf.lnum == src.what.lnum);
         break;
       case "title":
         ret = ret &&
