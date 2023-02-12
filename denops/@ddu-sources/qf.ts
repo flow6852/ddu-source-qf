@@ -16,10 +16,11 @@ type Params = {
 };
 
 type QuickFix = {
-  id: number;
   items: QuickFixItem[];
-  bufnr: number;
+  qfbufnr: number;
+  nr: number;
   col: number;
+  id: number;
   lnum: number;
   title: string;
 };
@@ -33,7 +34,8 @@ type QuickFixItem = {
 };
 
 type What = {
-  bufnr?: number;
+  qfbufnr?: number;
+  nr?: number;
   col?: number;
   id?: number;
   lnum?: number;
@@ -75,14 +77,22 @@ export class Source extends BaseSource<Params> {
           0 < i;
           i--
         ) {
-          const what = await (args.sourceParams.nr > -1
-            ? fn.getloclist(args.denops, args.sourceParams.nr, {
-              id: i,
-              all: 0,
-            })
-            : fn.getqflist(args.denops, { id: i, all: 0 })) as QuickFix;
+          // default {what} 
+          // if use {all: 0}, `getqflist` get items
+          const what: What = {
+            id: i,
+            nr: 0,
+            qfbufnr: 0,
+            col: 0,
+            lnum: 0,
+            title: "",
+          };
+
+          const qfl = await (args.sourceParams.nr > -1
+            ? fn.getloclist(args.denops, args.sourceParams.nr, what)
+            : fn.getqflist(args.denops, what)) as QuickFix;
           if (
-            isContain(what, args.sourceParams)
+            isContain(qfl, args.sourceParams)
           ) {
             titleid = i;
 
@@ -91,12 +101,12 @@ export class Source extends BaseSource<Params> {
                 id: titleid,
                 all: 0,
               })
-              : fn.getqflist(args.denops, { id: titleid, all: 0 })) as QuickFix;
+              : args.denops.dispatch("ddu-source-qf", "ddu_source_qf#_getqflist", { id: titleid, all: 0 }, 10)) as QuickFix;
             // create items
             const items: Item<ActionData>[] = [];
+            for (const citem of qflist.items) {
             // format text
             const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
-            for (const citem of qflist.items) {
               const text: string = args.sourceParams.format.replaceAll(
                 regexp,
                 " ",
@@ -178,8 +188,11 @@ function isContain(qf: QuickFix, src: Params) {
   let ret = true;
   for (const key of Object.keys(src.what)) {
     switch (key) {
-      case "bufnr":
-        ret = ret && (qf.bufnr == src.what.bufnr);
+      case "qfbufnr":
+        ret = ret && (qf.qfbufnr == src.what.qfbufnr);
+        break;
+      case "nr":
+        ret = ret && (qf.nr == src.what.nr);
         break;
       case "col":
         ret = ret && (qf.col == src.what.col);
