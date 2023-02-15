@@ -2,8 +2,8 @@ import {
   BaseSource,
   Item,
   SourceOptions,
-} from "https://deno.land/x/ddu_vim@v2.2.0/types.ts";
-import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.2.0/deps.ts";
+} from "https://deno.land/x/ddu_vim@v2.3.0/types.ts";
+import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.3.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
 import { isAbsolute } from "https://deno.land/std@0.177.0/path/mod.ts";
 
