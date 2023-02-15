@@ -5,7 +5,7 @@ import {
 } from "https://deno.land/x/ddu_vim@v2.3.0/types.ts";
 import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.3.0/deps.ts";
 import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.3.2/file.ts";
-import { isAbsolute } from "https://deno.land/std@0.177.0/path/mod.ts";
+import { isAbsolute, basename } from "https://deno.land/std@0.177.0/path/mod.ts";
 
 type Params = {
   nr: number;
@@ -117,6 +117,14 @@ export class Source extends BaseSource<Params> {
             // create items
             const items: Item<ActionData>[] = [];
             for (const citem of qflist.items) {
+              // fullpath
+              // Note: fn don't have isabsolutepath
+              const path =
+                isAbsolute(await fn.bufname(args.denops, citem.bufnr))
+                  ? await fn.bufname(args.denops, citem.bufnr)
+                  : await fn.getcwd(args.denops) + "/" +
+                    await fn.bufname(args.denops, citem.bufnr);
+
               // format text
               const regexp = new RegExp(/(\s|\t|\n|\v)+/g);
               const text: string = args.sourceParams.format.replaceAll(
@@ -127,7 +135,7 @@ export class Source extends BaseSource<Params> {
                   "%i",
                   String(qflist.id),
                 ).replaceAll(
-                  "%b",
+                  "%n",
                   String(citem.bufnr),
                 ).replaceAll(
                   "%c",
@@ -142,20 +150,18 @@ export class Source extends BaseSource<Params> {
                   "%y",
                   citem.type,
                 ).replaceAll(
+                  "%b",
+                  basename(await fn.bufname(args.denops, citem.bufnr)),
+                ).replaceAll(
                   "%p",
                   await fn.bufname(args.denops, citem.bufnr),
+                ).replaceAll(
+                  "%P",
+                  path,
                 ).replaceAll(
                   "%t",
                   citem.text,
                 );
-
-              // fullpath
-              // Note: fn don't have isabsolutepath
-              const path =
-                isAbsolute(await fn.bufname(args.denops, citem.bufnr))
-                  ? await fn.bufname(args.denops, citem.bufnr)
-                  : await fn.getcwd(args.denops) + "/" +
-                    await fn.bufname(args.denops, citem.bufnr);
 
               // set action data
               let item: ActionData = {

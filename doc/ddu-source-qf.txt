@@ -79,12 +79,14 @@ format 		(string)
 		text format.
 		
 		"%i":QuickFix id
-		"%b":item bufnr
+		"%n":item bufnr
 		"%c":item colnum 
 		"%l":item lnum
 		"%y":item type
 		"%T":QuickFix title
-		"%p":item path
+		"%b":item basename
+		"%p":item absolute path
+		"%P":item fullpath
 		"%t":item text
 
 		Default: "%T|%t"
