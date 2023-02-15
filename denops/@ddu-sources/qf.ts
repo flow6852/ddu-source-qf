@@ -44,8 +44,7 @@ type What = {
 
 type BufInfo = {
   bufnr: number;
-  hidden: boolean;
-  loaded: boolean;
+  listed: boolean;
 };
 
 export class Source extends BaseSource<Params> {
@@ -168,7 +167,7 @@ export class Source extends BaseSource<Params> {
 
               // set bufNr
               for (const info of bufInfos) {
-                if (info.bufnr == citem.bufnr && info.loaded && !info.hidden) {
+                if (info.bufnr == citem.bufnr && info.listed) {
                   item = { ...item, ...{ bufNr: info.bufnr } };
                 }
               }
