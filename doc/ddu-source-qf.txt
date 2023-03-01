@@ -52,7 +52,7 @@ EXAMPLES				*ddu-source-qf-examples*
 ==============================================================================
 PARAMS					*ddu-source-qf-params*
 
-				*ddu-source-qf-param-chunkSize*
+				*ddu-source-qf-param-nr*
 nr		(number)
 		get the location list for window nr
 		When -1, use getqflist.
