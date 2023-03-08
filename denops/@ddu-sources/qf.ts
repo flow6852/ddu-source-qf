@@ -105,7 +105,7 @@ export class Source extends BaseSource<Params> {
 
             const qflist = await (args.sourceParams.nr > -1
               ? args.denops.call(
-                "ddu_source_qf#internal#_getqflist",
+                "ddu#source#qf#_getqflist",
                 args.sourceParams.nr,
                 {
                   id: titleid,
@@ -113,7 +113,7 @@ export class Source extends BaseSource<Params> {
                 },
                 Math.min(smaller, totalRemain),
               )
-              : args.denops.call("ddu_source_qf#internal#_getqflist", {
+              : args.denops.call("ddu#source#qf#_getqflist", {
                 id: titleid,
                 all: 0,
               }, Math.min(smaller, totalRemain))) as QuickFix;
