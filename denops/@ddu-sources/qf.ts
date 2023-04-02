@@ -163,7 +163,7 @@ export class Source extends BaseSource<Params> {
                   path,
                 ).replaceAll(
                   "%t",
-                  citem.text,
+				  citem.text.replace(/^\s+/, ""),
                 );
 
               // set action data
