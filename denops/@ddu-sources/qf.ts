@@ -2,9 +2,9 @@ import {
   BaseSource,
   Item,
   SourceOptions,
-} from "https://deno.land/x/ddu_vim@v2.8.3/types.ts";
-import { Denops, fn } from "https://deno.land/x/ddu_vim@v2.8.3/deps.ts";
-import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.4.0/file.ts";
+} from "https://deno.land/x/ddu_vim@v3.0.0/types.ts";
+import { Denops, fn } from "https://deno.land/x/ddu_vim@v3.0.0/deps.ts";
+import { ActionData } from "https://deno.land/x/ddu_kind_file@v0.5.0/file.ts";
 import {
   basename,
   isAbsolute,
