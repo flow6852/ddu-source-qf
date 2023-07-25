@@ -9,6 +9,7 @@ import {
   basename,
   isAbsolute,
 } from "https://deno.land/std@0.195.0/path/mod.ts";
+import { assert, is } from "https://deno.land/x/unknownutil@v3.4.0/mod.ts";
 
 type Params = {
   nr: number;
@@ -20,6 +21,22 @@ type Params = {
   total: number;
 };
 
+type QuickFixItem = {
+  bufnr: number;
+  col: number;
+  lnum: number;
+  text: string;
+  type: string;
+};
+
+const isQuickFixItem = is.ObjectOf({
+  bufnr: is.Number,
+  col: is.Number,
+  lnum: is.Number,
+  text: is.String,
+  type: is.String,
+});
+
 type QuickFix = {
   id: number;
   items: QuickFixItem[];
@@ -29,13 +46,14 @@ type QuickFix = {
   title: string;
 };
 
-type QuickFixItem = {
-  bufnr: number;
-  col: number;
-  lnum: number;
-  text: string;
-  type: string;
-};
+const isQuickFix = is.ObjectOf({
+  id: is.Number,
+  items: is.ArrayOf(isQuickFixItem),
+  nr: is.Number,
+  qfbufnr: is.Number,
+  size: is.Number,
+  title: is.String,
+});
 
 type What = {
   id?: number;
@@ -50,6 +68,11 @@ type BufInfo = {
   listed: boolean;
 };
 
+const isBufInfo = is.ObjectOf({
+  bufnr: is.Number,
+  listed: is.Boolean,
+});
+
 export class Source extends BaseSource<Params> {
   override kind = "file";
 
@@ -62,22 +85,26 @@ export class Source extends BaseSource<Params> {
       async start(controller) {
         // get now bufNr
         // Note: fn.bufexists can't check """ hidden """
-        const bufInfos = await fn.getbufinfo(args.denops) as Array<BufInfo>;
+        const bufInfos: BufInfo | unknown = await fn.getbufinfo(args.denops);
+        assert(bufInfos, is.ArrayOf(isBufInfo));
 
         let totalRemain = args.sourceParams.total;
 
         // getlistid
         let titleid = 0;
+        const lastQf = await (args.sourceParams.nr > -1
+          ? fn.getloclist(args.denops, args.sourceParams.nr, {
+            nr: "$",
+            id: 0,
+          })
+          : fn.getqflist(args.denops, {
+            nr: "$",
+            id: 0,
+          }));
+        assert(lastQf, isQuickFix);
+
         for (
-          let i = (await (args.sourceParams.nr > -1
-            ? fn.getloclist(args.denops, args.sourceParams.nr, {
-              nr: "$",
-              id: 0,
-            })
-            : fn.getqflist(args.denops, {
-              nr: "$",
-              id: 0,
-            })) as QuickFix).id as number;
+          let i = lastQf.id;
           0 < i;
           i--
         ) {
@@ -93,7 +120,8 @@ export class Source extends BaseSource<Params> {
 
           const qfl = await (args.sourceParams.nr > -1
             ? fn.getloclist(args.denops, args.sourceParams.nr, what)
-            : fn.getqflist(args.denops, what)) as QuickFix;
+            : fn.getqflist(args.denops, what));
+          assert(qfl, isQuickFix);
           if (
             isContain(qfl, args.sourceParams) && totalRemain > 0
           ) {
@@ -116,7 +144,9 @@ export class Source extends BaseSource<Params> {
               : args.denops.call("ddu#source#qf#_getqflist", {
                 id: titleid,
                 all: 0,
-              }, Math.min(smaller, totalRemain))) as QuickFix;
+              }, Math.min(smaller, totalRemain)));
+            assert(qflist, isQuickFix);
+
             // create items
             const items: Item<ActionData>[] = [];
             for (const citem of qflist.items) {
@@ -225,10 +255,15 @@ function isContain(qf: QuickFix, src: Params) {
         ret = ret && (qf.id == src.what.id);
         break;
       case "title":
-        ret = ret &&
-          (src.isSubst
-            ? (!qf.title.indexOf(src.what.title as string))
-            : (qf.title == src.what.title));
+        {
+          const title = src.what.title;
+          assert(title, is.String);
+
+          ret = ret &&
+            (src.isSubst
+              ? (!qf.title.indexOf(title))
+              : (qf.title == src.what.title));
+        }
         break;
     }
   }
