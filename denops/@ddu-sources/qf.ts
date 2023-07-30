@@ -23,36 +23,50 @@ type Params = {
 
 type QuickFixItem = {
   bufnr: number;
+  nr: number;
   col: number;
+  end_col: number;
   lnum: number;
+  end_lnum: number;
+  vcol: number;
+  pattern: string;
+  valid: number;
   text: string;
   type: string;
+  module: string;
 };
 
 const isQuickFixItem = is.ObjectOf({
   bufnr: is.Number,
+  nr: is.Number,
   col: is.Number,
+  end_col: is.Number,
   lnum: is.Number,
+  end_lnum: is.Number,
+  vcol: is.Number,
+  pattern: is.String,
+  valid: is.Number,
   text: is.String,
   type: is.String,
+  module: is.String,
 });
 
 type QuickFix = {
   id: number;
-  items: QuickFixItem[];
+  items?: QuickFixItem[];
   nr: number;
-  qfbufnr: number;
-  size: number;
-  title: string;
+  qfbufnr?: number;
+  size?: number;
+  title?: string;
 };
 
 const isQuickFix = is.ObjectOf({
   id: is.Number,
-  items: is.ArrayOf(isQuickFixItem),
+  items: is.OptionalOf(is.ArrayOf(isQuickFixItem)),
   nr: is.Number,
-  qfbufnr: is.Number,
-  size: is.Number,
-  title: is.String,
+  qfbufnr: is.OptionalOf(is.Number),
+  size: is.OptionalOf(is.Number),
+  title: is.OptionalOf(is.String),
 });
 
 type What = {
@@ -85,7 +99,7 @@ export class Source extends BaseSource<Params> {
       async start(controller) {
         // get now bufNr
         // Note: fn.bufexists can't check """ hidden """
-        const bufInfos: BufInfo | unknown = await fn.getbufinfo(args.denops);
+        const bufInfos: Array<BufInfo> = await fn.getbufinfo(args.denops);
         assert(bufInfos, is.ArrayOf(isBufInfo));
 
         let totalRemain = args.sourceParams.total;
@@ -127,6 +141,8 @@ export class Source extends BaseSource<Params> {
           ) {
             titleid = i;
 
+            assert(qfl.size, is.Number);
+
             const smaller = qfl.size < args.sourceParams.size
               ? qfl.size
               : args.sourceParams.size;
@@ -149,6 +165,8 @@ export class Source extends BaseSource<Params> {
 
             // create items
             const items: Item<ActionData>[] = [];
+            assert(qflist.items, is.ArrayOf(isQuickFixItem));
+            assert(qflist.title, is.String);
             for (const citem of qflist.items) {
               // fullpath
               // Note: fn don't have isabsolutepath
@@ -258,7 +276,7 @@ function isContain(qf: QuickFix, src: Params) {
         {
           const title = src.what.title;
           assert(title, is.String);
-
+          assert(qf.title, is.String);
           ret = ret &&
             (src.isSubst
               ? (!qf.title.indexOf(title))
